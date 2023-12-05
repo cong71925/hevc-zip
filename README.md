@@ -3,7 +3,7 @@
 一个使用HEVC编码进行图像有损压缩的程序，基于Ffmpeg + Electron + Vue
 
 ![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/cong71925/hevc-zip/main)
-![GitHub all releases](https://img.shields.io/github/downloads/cong71925/hevc-zip/total?link=https%3A%2F%2Fgithub.com%2Fcong71925%2Fhevc-zip%2Freleases)
+![GitHub all releases](https://img.shields.io/github/downloads/cong71925/hevc-zip/total)
 ![GitHub License](https://img.shields.io/github/license/cong71925/hevc-zip)
 
 ## 下载发行版
