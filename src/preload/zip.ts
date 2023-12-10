@@ -60,7 +60,7 @@ export const zip = async (
         .run()
     })
   }
-  const outputFilePath = savePath.replace(extname(savePath), '.mkv')
+  const outputFilePath = savePath.replace(new RegExp(extname(savePath) + '$'), '.mkv')
   await new Promise<void>((resolve, reject) => {
     const ffmpeg = Ffmpeg()
     for (const index in zipTrackList) {
