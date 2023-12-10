@@ -3,12 +3,16 @@ import { ipcRenderer } from 'electron'
 const defaultSetting: SettingOptions = {
   encoder: 'libx265',
   crf: 23,
-  preset: 'medium'
+  preset: 'medium',
+  outputType: 'original'
 }
 
 export const getSetting = async (): Promise<SettingOptions> => {
   const setting: SettingOptions = await ipcRenderer.invoke('store.get', 'setting')
-  return setting ? setting : defaultSetting
+  return {
+    ...defaultSetting,
+    ...setting
+  }
 }
 
 export const setSetting = async (setting: SettingOptions): Promise<void> =>

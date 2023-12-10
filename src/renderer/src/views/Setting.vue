@@ -3,7 +3,7 @@
   <NForm :model="form">
     <NFormItem label="硬件编码">
       <div class="w-full">
-        <NSelect v-model:value="form.encoder" :options="options" />
+        <NSelect v-model:value="form.encoder" :options="encoderOptions" />
         <NTag :bordered="false" class="w-full mt-2">
           使用硬件编码器会使图像质量稍微下降，但是可以大幅加快编码速度
         </NTag>
@@ -25,6 +25,14 @@
         </NTag>
       </div>
     </NFormItem>
+    <NFormItem label="解压输出格式">
+      <div class="w-full">
+        <NSelect v-model:value="form.outputType" :options="outputTypeOptions" />
+        <NTag :bordered="false" class="w-full mt-2">
+          强制输出PNG格式可以缓解源文件是JPG时造成的二次编码的图像质量下降问题
+        </NTag>
+      </div>
+    </NFormItem>
   </NForm>
 </template>
 <script setup async lang="ts">
@@ -35,10 +43,16 @@ interface Form extends Omit<SettingOptions, 'preset'> {
   preset: IntRange<0, 10>
 }
 
-const options = [
+const encoderOptions = [
   { value: 'libx265', label: '禁用' },
   { value: 'hevc_nvenc', label: 'Nvidia' },
   { value: 'hevc_amf', label: 'AMD' }
+]
+
+const outputTypeOptions = [
+  { value: 'original', label: '同源文件' },
+  { value: 'png', label: '强制输出PNG格式' },
+  { value: 'jpeg', label: '强制输出JPG格式' }
 ]
 
 const presetList: SettingOptions['preset'][] = [
@@ -58,7 +72,8 @@ const setting = await window.api.getSetting()
 const form = reactive<Form>({
   encoder: setting.encoder || 'libx265',
   crf: setting.crf || 20,
-  preset: (presetList.findIndex((value) => value === setting.preset) as IntRange<0, 10>) || 5
+  preset: (presetList.findIndex((value) => value === setting.preset) as IntRange<0, 10>) || 5,
+  outputType: setting.outputType || 'original'
 })
 
 watch(form, (newVal) => {

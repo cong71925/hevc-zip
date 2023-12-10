@@ -1,7 +1,8 @@
 import { ipcRenderer, shell } from 'electron'
-import { join } from 'path'
+import { join, extname } from 'path'
 import fs from 'fs'
 import Ffmpeg from 'fluent-ffmpeg'
+import { getSetting } from './setting'
 
 export const getZipIndex = async (filePath: string) => {
   const appName = await ipcRenderer.invoke('getName')
@@ -18,7 +19,7 @@ export const getZipIndex = async (filePath: string) => {
       .on('end', resolve)
       .input(filePath)
       .inputOptions([`-dump_attachment:t:0 ${jsonPath}`])
-      .toFormat('null')
+      .toFormat('ffmetadata')
       .output(join(cacheFolder, 'out.null'))
       .run()
   })
@@ -38,6 +39,9 @@ export const unzip = async (
   if (!fs.existsSync(cacheFolder)) {
     fs.mkdirSync(cacheFolder, { recursive: true })
   }
+
+  const { outputType } = await getSetting()
+
   const { trackList, imageList } = zipIndex
   for (const index in trackList) {
     const { imageType } = trackList[index]
@@ -52,9 +56,19 @@ export const unzip = async (
           })
         })
       }
+
       ffmpeg.input(filePath)
+      switch (outputType) {
+        case 'jpeg':
+        case 'png':
+          ffmpeg.output(join(cacheFolder, `track_${index}_%d.${outputType}`))
+          break
+        case 'original':
+        default:
+          ffmpeg.output(join(cacheFolder, `track_${index}_%d.${imageType}`))
+      }
+
       ffmpeg
-        .output(join(cacheFolder, `track_${index}_%d.${imageType}`))
         .outputFormat('image2')
         .outputOption(['-qscale:v 2', `-map 0:${index}`])
         .on('error', (error) => {
@@ -73,10 +87,29 @@ export const unzip = async (
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true })
     }
-    fs.renameSync(
-      join(cacheFolder, `./track_${track}_${index + 1}.${imageType}`),
-      join(savePath, relativePath || fileName)
-    )
+
+    switch (outputType) {
+      case 'jpeg':
+      case 'png':
+        fs.renameSync(
+          join(cacheFolder, `./track_${track}_${index + 1}.${outputType}`),
+          join(
+            savePath,
+            (relativePath || fileName).replace(
+              new RegExp(extname(relativePath || fileName) + '$'),
+              `.${outputType}`
+            )
+          )
+        )
+        break
+
+      case 'original':
+      default:
+        fs.renameSync(
+          join(cacheFolder, `./track_${track}_${index + 1}.${imageType}`),
+          join(savePath, relativePath || fileName)
+        )
+    }
   }
   fs.rmSync(cacheFolder, { recursive: true })
   shell.showItemInFolder(savePath)
