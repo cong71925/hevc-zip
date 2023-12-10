@@ -13,10 +13,13 @@ asarUnpack:
   - resources/**
 win:
   executableName: hevc-zip
+  target: 
+    - target: nsis
+      arch: x64
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-x64-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

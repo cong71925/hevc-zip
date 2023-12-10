@@ -41,7 +41,7 @@ jobs:
       with:
         type: 'zip'
         directory: dist/
-        filename: hevc-zip-${{ steps.get-package-version.outputs.version }}.zip
+        filename: hevc-zip-${{ steps.get-package-version.outputs.version }}-x64.zip
         path: win-unpacked
 
     - name: Release
