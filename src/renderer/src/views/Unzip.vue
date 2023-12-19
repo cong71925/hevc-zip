@@ -28,7 +28,15 @@
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="tableData" flex-height>
+    <NDataTable
+      class="flex-1"
+      :loading="loading"
+      :columns="columns"
+      :data="tableData"
+      :row-key="getRowKey"
+      virtual-scroll
+      flex-height
+    >
       <template #empty>
         <NEmpty description="空空的" />
       </template>
@@ -85,7 +93,7 @@ const savePath = ref('')
 const tableData = ref<ImageInfo[]>([])
 const loadingMsg = ref('')
 const loading = computed(() => (loadingMsg.value ? true : false))
-
+const getRowKey = (row: ImageInfo) => row.relativePath
 let zipIndex: ZipIndex
 
 const openSaveDialog = async () => {
