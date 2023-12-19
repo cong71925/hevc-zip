@@ -1,5 +1,4 @@
 <template>
-  <Versions />
   <NForm :model="form">
     <NFormItem label="硬件编码">
       <div class="w-full">
