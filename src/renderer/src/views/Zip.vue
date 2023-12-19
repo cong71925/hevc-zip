@@ -38,7 +38,15 @@
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="tableData" flex-height>
+    <NDataTable
+      class="flex-1"
+      :loading="loading"
+      :columns="columns"
+      :data="tableData"
+      :row-key="getRowKey"
+      virtual-scroll
+      flex-height
+    >
       <template #empty>
         <NEmpty description="空空的" />
       </template>
@@ -58,7 +66,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onBeforeUnmount, computed } from 'vue'
+import { ref, onBeforeUnmount, computed, h } from 'vue'
 import {
   NButton,
   NInput,
@@ -78,6 +86,7 @@ import {
   TrashBinOutline,
   SaveOutline
 } from '@vicons/ionicons5'
+import { openImageListPreview } from '@renderer/components/ImagePreview'
 const { getZipTrackList, zip } = window.api
 const columns = [
   {
@@ -94,13 +103,46 @@ const columns = [
   },
   {
     title: '路径',
-    key: 'absolutePath'
+    key: 'absolutePath',
+    resizable: true
+  },
+  {
+    title: '操作',
+    key: 'preview',
+    width: 100,
+    render: (_row: ImageInfo, index: number) => [
+      h(
+        NButton,
+        {
+          class: 'mr-1',
+          onClick: () =>
+            openImageListPreview(
+              index,
+              tableData.value.map(({ absolutePath }) => 'atom:///' + absolutePath)
+            ),
+          text: true
+        },
+        { default: () => '预览' }
+      ),
+      h(
+        NButton,
+        {
+          onClick: () => {
+            tableData.value.splice(index, 1)
+          },
+          text: true,
+          type: 'error'
+        },
+        { default: () => '移除' }
+      )
+    ]
   }
 ]
 const savePath = ref('')
 const tableData = ref<ImageInfo[]>([])
 const loadingMsg = ref('')
 const loading = computed(() => (loadingMsg.value ? true : false))
+const getRowKey = (row: ImageInfo) => row.absolutePath
 
 const openSaveDialog = async () => {
   loadingMsg.value = '正在选择保存路径...'
