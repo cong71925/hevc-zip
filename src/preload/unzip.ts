@@ -28,6 +28,15 @@ export const getZipIndex = async (filePath: string) => {
   return zipIndex
 }
 
+const getImageQuality = (imageType: 'jpeg' | 'webp', qualityLevel: IntRange<0, 10>) => {
+  switch (imageType) {
+    case 'jpeg':
+      return 31 - 3 * (qualityLevel + 1)
+    case 'webp':
+      return 10 * qualityLevel + 10
+  }
+}
+
 export const unzip = async (
   filePath: string,
   savePath: string,
@@ -40,7 +49,7 @@ export const unzip = async (
     fs.mkdirSync(cacheFolder, { recursive: true })
   }
 
-  const { outputType } = await getSetting()
+  const { outputType, outputWebpLossless, outputQualityLevel } = await getSetting()
 
   const { trackList, imageList } = zipIndex
   for (const index in trackList) {
@@ -58,19 +67,32 @@ export const unzip = async (
       }
 
       ffmpeg.input(filePath)
-      switch (outputType) {
-        case 'jpeg':
-        case 'png':
-          ffmpeg.output(join(cacheFolder, `track_${index}_%d.${outputType}`))
+
+      const outputFormat = outputType === 'original' ? imageType : outputType
+      switch (outputFormat) {
+        case 'webp':
+          ffmpeg
+            .output(join(cacheFolder, `track_${index}_%d.${outputFormat}`))
+            .outputOption([
+              `-qscale:v ${
+                outputWebpLossless ? 75 : getImageQuality(outputFormat, outputQualityLevel)
+              }`,
+              `-lossless ${outputWebpLossless}`
+            ])
           break
-        case 'original':
+        case 'jpeg':
+          ffmpeg
+            .output(join(cacheFolder, `track_${index}_%d.${outputFormat}`))
+            .outputOption([`-qscale:v ${getImageQuality(outputFormat, outputQualityLevel)}`])
+          break
+        case 'png':
         default:
-          ffmpeg.output(join(cacheFolder, `track_${index}_%d.${imageType}`))
+          ffmpeg.output(join(cacheFolder, `track_${index}_%d.${outputFormat}`))
       }
 
       ffmpeg
         .outputFormat('image2')
-        .outputOption(['-qscale:v 2', `-map 0:${index}`])
+        .outputOption([`-map 0:${index}`])
         .on('error', (error) => {
           fs.rmSync(cacheFolder, { recursive: true })
           console.error(error)
@@ -91,6 +113,7 @@ export const unzip = async (
     switch (outputType) {
       case 'jpeg':
       case 'png':
+      case 'webp':
         fs.renameSync(
           join(cacheFolder, `./track_${track}_${index + 1}.${outputType}`),
           join(
@@ -102,7 +125,6 @@ export const unzip = async (
           )
         )
         break
-
       case 'original':
       default:
         fs.renameSync(

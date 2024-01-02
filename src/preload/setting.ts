@@ -4,7 +4,9 @@ const defaultSetting: SettingOptions = {
   encoder: 'libx265',
   crf: 23,
   preset: 'medium',
-  outputType: 'original'
+  outputType: 'original',
+  outputWebpLossless: 0,
+  outputQualityLevel: 8
 }
 
 export const getSetting = async (): Promise<SettingOptions> => {

@@ -52,7 +52,9 @@ export declare global {
       | 'slower'
       | 'veryslow'
       | 'placebo'
-    outputType: 'original' | 'jpeg' | 'png'
+    outputType: 'original' | 'jpeg' | 'png' | 'webp'
+    outputWebpLossless: 0 | 1
+    outputQualityLevel: IntRange<0, 10>
   }
 
   type Enumerate<N extends number, Acc extends number[] = []> = Acc['length'] extends N
