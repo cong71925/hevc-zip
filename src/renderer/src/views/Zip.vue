@@ -158,7 +158,7 @@ const openFiles = async () => {
   loadingMsg.value = '正在打开文件...'
   const filepath = await window.api.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: '图片文件', extensions: ['jpg', 'png'] }]
+    filters: [{ name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'webp'] }]
   })
   loadingMsg.value = ''
   if (!filepath) return
@@ -193,10 +193,14 @@ const drag = (e: DragEvent) => {
   for (const file of e.dataTransfer.files) {
     if (window.api.isDir(file.path)) {
       tableData.value = [...tableData.value, ...window.api.readDir(file.path)]
-    } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
+    } else if (
+      file.type === 'image/jpeg' ||
+      file.type === 'image/png' ||
+      file.type === 'image/webp'
+    ) {
       tableData.value = [
         ...tableData.value,
-        { fileName: file.name, absolutePath: file.path, relativePath: '\\' }
+        { fileName: file.name, absolutePath: file.path, relativePath: '' }
       ]
     }
   }

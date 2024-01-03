@@ -1,13 +1,13 @@
 export declare global {
   interface ZipTrack {
-    imageType: 'jpeg' | 'png'
+    imageType: 'jpeg' | 'png' | 'webp'
     imageList: ImageInfo[]
   }
 
   interface ZipIndex {
     version: string
     trackList: {
-      imageType: 'jpeg' | 'png'
+      imageType: 'jpeg' | 'png' | 'webp'
       track: number
     }[]
     imageList: ZipImageInfo[]
@@ -24,7 +24,7 @@ export declare global {
     relativePath: string
     track: number
     index: number
-    imageType: 'jpeg' | 'png'
+    imageType: 'jpeg' | 'png' | 'webp'
   }
 
   interface Progress {

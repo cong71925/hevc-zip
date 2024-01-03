@@ -22,7 +22,7 @@ const readDir = (currentDirPath: string, rootDir?: string) => {
   let result: { absolutePath: string; fileName: string; relativePath: string }[] = []
   fs.readdirSync(currentDirPath, { withFileTypes: true }).forEach((dirent) => {
     const filePath = join(currentDirPath, dirent.name)
-    if (dirent.isFile() && new RegExp('.(jpg|jpeg|png)$', 'i').test(dirent.name)) {
+    if (dirent.isFile() && new RegExp('.(jpg|jpeg|png|webp)$', 'i').test(dirent.name)) {
       result.push({
         absolutePath: filePath,
         fileName: dirent.name,

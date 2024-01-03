@@ -116,8 +116,9 @@ export const getZipTrackList = async (imageList: ImageInfo[]) => {
   for (const index in imageList) {
     const image = imageList[index]
     const tags = await ipcRenderer.invoke('readExif', image.absolutePath)
+    console.log(tags)
     let str: string
-    let imageType: 'jpeg' | 'png'
+    let imageType: 'jpeg' | 'png' | 'webp'
     if (!checkImgSizeMax(tags['Image Height']?.value || 0, tags['Image Width']?.value || 0)) {
       throw new Error(`${image.absolutePath}的图片分辨率超出了FFMEPG的处理上限`)
     }
@@ -129,6 +130,10 @@ export const getZipTrackList = async (imageList: ImageInfo[]) => {
       case 'png':
         imageType = 'png'
         str = `${tags['Image Height']?.value}x${tags['Image Width']?.value}_${tags['Bit Depth']?.value}Bits_${tags['Color Type']?.description}_${tags.FileType.value}`
+        break
+      case 'webp':
+        imageType = 'webp'
+        str = `${tags['Image Height']?.value}x${tags['Image Width']?.value}`
         break
       default:
         continue

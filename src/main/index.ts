@@ -3,7 +3,6 @@ import type { OpenDialogOptions, SaveDialogOptions } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import fs from 'fs'
 import ExifReader from 'exifreader'
 import store from './store'
 
@@ -51,7 +50,7 @@ function createWindow(): void {
 
   ipcMain.handle('getName', () => app.getName())
 
-  ipcMain.handle('readExif', (_event, path: string) => ExifReader.load(fs.readFileSync(path)))
+  ipcMain.handle('readExif', (_event, path: string) => ExifReader.load(path))
 
   ipcMain.handle('openDirectory', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
