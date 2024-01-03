@@ -115,7 +115,7 @@ const ImagePreviewVue = defineComponent({
 
     return () => (
       <>
-        <div class="fixed inset-0 z-30 select-none">
+        <div class="fixed flex inset-0 z-30 select-none">
           <img
             src={src.value}
             draggable="false"
