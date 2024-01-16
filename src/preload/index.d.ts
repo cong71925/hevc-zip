@@ -1,6 +1,7 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import { OpenDialogOptions, SaveDialogOptions } from 'electron'
 import { basename, join } from 'path'
+import { JSONSchemaType } from 'ajv'
 
 declare global {
   interface Window {
@@ -9,8 +10,10 @@ declare global {
       zip: (
         zipTrackList: ZipTrack[],
         savePath: string,
-        progress?: (progress: Progress) => void
+        progress?: (progress: Progress) => void,
+        signal?: AbortSignal
       ) => Promise<void>
+      zipCancel: () => void
       getZipTrackList: (imageList: ImageInfo[]) => Promise<ZipTrack[]>
 
       unzip: (
@@ -19,6 +22,7 @@ declare global {
         progress?: (progress: Progress) => void,
         zipIndex?: ZipIndex
       ) => Promise<void>
+      unzipCancel: () => void
       getZipIndex: (path: string) => Promise<ZipIndex>
 
       showOpenDialog: (options?: OpenDialogOptions) => Promise<string[] | null>
@@ -29,6 +33,11 @@ declare global {
       join: join
       getSetting: () => Promise<SettingOptions>
       setSetting: (setting: SettingOptions) => Promise<void>
+      getEncoder: (
+        encoder: SettingOptions['encoder'],
+        hardware: SettingOptions['hardware']
+      ) => RealEncoder
+      settingSchema: JSONSchemaType<SettingOptions>
     }
   }
 }

@@ -39,23 +39,33 @@ export declare global {
   }
 
   interface SettingOptions {
-    encoder: 'libx265' | 'hevc_nvenc' | 'hevc_amf'
-    crf: IntRange<0, 52>
-    preset:
-      | 'ultrafast'
-      | 'superfast'
-      | 'veryfast'
-      | 'faster'
-      | 'fast'
-      | 'medium'
-      | 'slow'
-      | 'slower'
-      | 'veryslow'
-      | 'placebo'
+    encoder: 'hevc' | 'av1'
+    hardware: '' | 'amd' | 'nvidia'
+
+    crf_libx265: IntRange<0, 52>
+    preset_libx265: IntRange<0, 10>
+
+    crf_hevc_amf: IntRange<0, 52>
+    preset_hevc_amf: IntRange<0, 11>
+
+    crf_hevc_nvenc: IntRange<0, 52>
+    preset_hevc_nvenc: IntRange<0, 7>
+
+    crf_libsvtav1: IntRange<0, 63>
+    preset_libsvtav1: IntRange<0, 14>
+
+    crf_av1_amf: IntRange<0, 256>
+    preset_av1_amf: IntRange<0, 11>
+
+    crf_av1_nvenc: IntRange<0, 52>
+    preset_av1_nvenc: IntRange<0, 7>
+
     outputType: 'original' | 'jpeg' | 'png' | 'webp'
     outputWebpLossless: 0 | 1
     outputQualityLevel: IntRange<0, 10>
   }
+
+  type RealEncoder = 'libx265' | 'hevc_amf' | 'hevc_nvenc' | 'libsvtav1' | 'av1_amf' | 'av1_nvenc'
 
   type Enumerate<N extends number, Acc extends number[] = []> = Acc['length'] extends N
     ? Acc[number]

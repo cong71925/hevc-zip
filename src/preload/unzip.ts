@@ -4,37 +4,10 @@ import fs from 'fs'
 import Ffmpeg from 'fluent-ffmpeg'
 import { getSetting } from './setting'
 
-export const getZipIndex = async (filePath: string) => {
-  const appName = await ipcRenderer.invoke('getName')
-  const tempPath = await ipcRenderer.invoke('getPath', 'temp')
-  const cacheFolder = join(tempPath, appName)
-  const jsonPath = join(cacheFolder, '/index.json')
-  if (!fs.existsSync(cacheFolder)) {
-    fs.mkdirSync(cacheFolder, { recursive: true })
-  }
-  const ffmpeg = Ffmpeg()
-  await new Promise<void>((resolve, reject) => {
-    ffmpeg
-      .on('error', reject)
-      .on('end', resolve)
-      .input(filePath)
-      .inputOptions([`-dump_attachment:t:0 ${jsonPath}`])
-      .toFormat('ffmetadata')
-      .output(join(cacheFolder, 'out.null'))
-      .run()
-  })
-  const zipIndex: ZipIndex = JSON.parse(fs.readFileSync(jsonPath, { encoding: 'utf-8' }))
-  fs.rmSync(jsonPath)
-  return zipIndex
-}
+let controller = new AbortController()
 
-const getImageQuality = (imageType: 'jpeg' | 'webp', qualityLevel: IntRange<0, 10>) => {
-  switch (imageType) {
-    case 'jpeg':
-      return 31 - 3 * (qualityLevel + 1)
-    case 'webp':
-      return 10 * qualityLevel + 10
-  }
+export const unzipCancel = () => {
+  controller.abort()
 }
 
 export const unzip = async (
@@ -43,6 +16,10 @@ export const unzip = async (
   progress?: (progress: Progress) => void,
   zipIndex?: ZipIndex
 ) => {
+  controller.abort()
+  controller = new AbortController()
+  const signal = controller.signal
+
   zipIndex = zipIndex || (await getZipIndex(filePath))
   const cacheFolder = join(savePath, '.cache')
   if (!fs.existsSync(cacheFolder)) {
@@ -56,6 +33,8 @@ export const unzip = async (
     const { imageType } = trackList[index]
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = Ffmpeg()
+      signal.addEventListener('abort', () => ffmpeg.kill(''))
+
       if (progress) {
         ffmpeg.on('progress', (e) => {
           progress({
@@ -135,4 +114,37 @@ export const unzip = async (
   }
   fs.rmSync(cacheFolder, { recursive: true })
   shell.showItemInFolder(savePath)
+}
+
+export const getZipIndex = async (filePath: string) => {
+  const appName = await ipcRenderer.invoke('getName')
+  const tempPath = await ipcRenderer.invoke('getPath', 'temp')
+  const cacheFolder = join(tempPath, appName)
+  const jsonPath = join(cacheFolder, '/index.json')
+  if (!fs.existsSync(cacheFolder)) {
+    fs.mkdirSync(cacheFolder, { recursive: true })
+  }
+  const ffmpeg = Ffmpeg()
+  await new Promise<void>((resolve, reject) => {
+    ffmpeg
+      .on('error', reject)
+      .on('end', resolve)
+      .input(filePath)
+      .inputOptions([`-dump_attachment:t:0 ${jsonPath}`])
+      .toFormat('ffmetadata')
+      .output(join(cacheFolder, 'out.null'))
+      .run()
+  })
+  const zipIndex: ZipIndex = JSON.parse(fs.readFileSync(jsonPath, { encoding: 'utf-8' }))
+  fs.rmSync(jsonPath)
+  return zipIndex
+}
+
+const getImageQuality = (imageType: 'jpeg' | 'webp', qualityLevel: IntRange<0, 10>) => {
+  switch (imageType) {
+    case 'jpeg':
+      return 31 - 3 * (qualityLevel + 1)
+    case 'webp':
+      return 10 * qualityLevel + 10
+  }
 }

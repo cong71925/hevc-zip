@@ -2,14 +2,24 @@ import { shell, ipcRenderer } from 'electron'
 import { join, dirname, extname } from 'path'
 import fs from 'fs'
 import Ffmpeg from 'fluent-ffmpeg'
-import { getSetting } from './setting'
+import { getSetting, getEncoder } from './setting'
 import { version } from '../../package.json'
+
+let controller = new AbortController()
+
+export const zipCancel = () => {
+  controller.abort()
+}
 
 export const zip = async (
   zipTrackList: ZipTrack[],
   savePath: string,
   progress?: (progress: Progress) => void
 ) => {
+  controller.abort()
+  controller = new AbortController()
+  const signal = controller.signal
+
   const targetFolder = dirname(savePath)
   const cacheFolder = join(targetFolder, '.cache')
   if (!fs.existsSync(targetFolder)) {
@@ -33,6 +43,7 @@ export const zip = async (
   for (const index in zipTrackList) {
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = Ffmpeg()
+      signal.addEventListener('abort', () => ffmpeg.kill(''))
       if (progress) {
         ffmpeg.on('progress', (e) => {
           progress({
@@ -46,9 +57,9 @@ export const zip = async (
         .input(join(cacheFolder, `content_${index}.txt`))
         .fromFormat('concat')
         .inputOption(['-safe 0'])
-        .videoCodec(setting?.encoder || 'libx265')
+        .videoCodec(getEncoder(setting.encoder, setting.hardware))
         .size('100%')
-        .outputOption([`-crf ${setting?.crf || 23}`, `-preset ${setting?.preset || 'medium'}`])
+        .outputOption(getOutputOption(setting))
         .outputFps(1)
         .output(join(cacheFolder, `content_${index}.mkv`))
         .on('error', (error) => {
@@ -112,11 +123,18 @@ const checkImgSizeMax = (height: number, width: number) =>
   Math.pow(2, 31) / 8 - 1 - height * width >= 0
 
 export const getZipTrackList = async (imageList: ImageInfo[]) => {
+  controller.abort()
+  controller = new AbortController()
+  const signal = controller.signal
+  let cancel = false
+  signal.addEventListener('abort', () => (cancel = true))
   const map = new Map<string, ZipTrack>()
   for (const index in imageList) {
+    if (cancel) {
+      throw new Error('停止处理')
+    }
     const image = imageList[index]
     const tags = await ipcRenderer.invoke('readExif', image.absolutePath)
-    console.log(tags)
     let str: string
     let imageType: 'jpeg' | 'png' | 'webp'
     if (!checkImgSizeMax(tags['Image Height']?.value || 0, tags['Image Width']?.value || 0)) {
@@ -151,4 +169,40 @@ export const getZipTrackList = async (imageList: ImageInfo[]) => {
     }
   }
   return [...map.values()].sort((a, b) => b.imageList.length - a.imageList.length)
+}
+
+const getOutputOption = (setting: SettingOptions) => {
+  const encoder = getEncoder(setting.encoder, setting.hardware)
+  switch (encoder) {
+    case 'libx265':
+      return [`-crf ${setting.crf_libx265}`, `-preset ${setting.preset_libx265}`]
+    case 'hevc_amf':
+      return [
+        `-rc cqp`,
+        `-qp_i ${setting.crf_hevc_amf}`,
+        `-qp_p ${setting.crf_hevc_amf}`,
+        `-quality ${10 - setting.preset_hevc_amf}`
+      ]
+    case 'hevc_nvenc':
+      return [
+        `-rc constqp`,
+        `-cq ${setting.crf_hevc_nvenc + 1}`,
+        `-quality ${12 + setting.preset_hevc_nvenc}`
+      ]
+    case 'libsvtav1':
+      return [`-crf ${setting.crf_libsvtav1}`, `-preset ${setting.preset_libsvtav1}`]
+    case 'av1_amf':
+      return [
+        `-rc cqp`,
+        `-qp_i ${setting.crf_av1_amf}`,
+        `-qp_p ${setting.crf_av1_amf}`,
+        `-quality ${100 - 10 * setting.preset_av1_amf}`
+      ]
+    case 'av1_nvenc':
+      return [
+        `-rc constqp`,
+        `-cq ${setting.crf_av1_nvenc + 1}`,
+        `-quality ${12 + setting.preset_av1_nvenc}`
+      ]
+  }
 }

@@ -5,9 +5,9 @@ import { join, relative, basename } from 'path'
 import fs from 'fs'
 import Ffmpeg from 'fluent-ffmpeg'
 
-import { zip, getZipTrackList } from './zip'
-import { unzip, getZipIndex } from './unzip'
-import { getSetting, setSetting } from './setting'
+import { zip, zipCancel, getZipTrackList } from './zip'
+import { unzip, unzipCancel, getZipIndex } from './unzip'
+import { getSetting, setSetting, getEncoder, settingSchema } from './setting'
 
 import ffmpegPath from '../../resources/ffmpeg.exe?asset&asarUnpack'
 Ffmpeg.setFfmpegPath(ffmpegPath)
@@ -48,11 +48,15 @@ const api = {
   // setting
   getSetting,
   setSetting,
+  getEncoder,
+  settingSchema,
   // zip
   zip,
+  zipCancel,
   getZipTrackList,
   // unzip
   unzip,
+  unzipCancel,
   getZipIndex
 }
 

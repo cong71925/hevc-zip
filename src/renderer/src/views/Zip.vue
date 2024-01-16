@@ -7,62 +7,63 @@
     </NCollapseTransition>
     <div class="flex">
       <NButton :disabled="loading" class="mr-2" @click="openFiles">
-        <NIcon size="20" :component="DocumentOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="DocumentOutline" />
+        </template>
         添加文件
       </NButton>
       <NButton :disabled="loading" class="mr-2" @click="openDirs">
-        <NIcon size="20" :component="FolderOpenOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="FolderOpenOutline" />
+        </template>
         添加文件夹
       </NButton>
       <NButton type="error" ghost :disabled="loading" class="mr-2" @click="tableData = []">
-        <NIcon size="20" :component="TrashBinOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="TrashBinOutline" />
+        </template>
         清空
       </NButton>
       <div class="flex-1"></div>
-      <NButton type="info" ghost :disabled="loading" @click="run">
-        <NIcon size="20" :component="PlayOutline" />
-        <span class="p-1"></span>
+      <NButton type="info" ghost :loading="loading" @click="run">
+        <template #icon>
+          <NIcon size="20" :component="PlayOutline" />
+        </template>
         执行
       </NButton>
     </div>
     <div class="p-1"></div>
     <NInputGroup>
       <NButton :disabled="loading" @click="openSaveDialog">
-        <NIcon size="20" :component="SaveOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="SaveOutline" />
+        </template>
         保存到
       </NButton>
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable
-      class="flex-1"
-      :loading="loading"
-      :columns="columns"
-      :data="tableData"
-      :row-key="getRowKey"
-      virtual-scroll
-      flex-height
-    >
+    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="tableData" :row-key="getRowKey" virtual-scroll
+      flex-height>
       <template #empty>
         <NEmpty description="空空的" />
       </template>
       <template #loading>
         <NSpin>
-          <template #description>{{ loadingMsg }}</template>
+          <template #description>
+            {{ loadingMsg }}
+          </template>
         </NSpin>
       </template>
     </NDataTable>
-    <NProgress
-      v-if="percentage"
-      processing
-      indicator-placement="inside"
-      :percentage="percentage"
-      class="pt-2"
-    />
+    <div v-if="percentage" class="flex items-center pt-2">
+      <NProgress class="pr-2" processing indicator-placement="inside" :percentage="percentage" />
+      <NButton type="error" size="tiny" ghost @click="zipCancel">
+        <template #icon>
+          <NIcon size="12" :component="CloseOutline" />
+        </template>
+      </NButton>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -84,7 +85,8 @@ import {
   FolderOpenOutline,
   PlayOutline,
   TrashBinOutline,
-  SaveOutline
+  SaveOutline,
+  CloseOutline
 } from '@vicons/ionicons5'
 import { openImageListPreview } from '@renderer/components/ImagePreview'
 const { getZipTrackList, zip } = window.api
@@ -240,7 +242,7 @@ const run = async () => {
     return
   }
   const sums = tableData.value.length
-  percentage.value = 1
+  percentage.value = Number(((1 / (sums + 3)) * 100).toFixed(2))
   loadingMsg.value = '正在构建索引...'
   const zipTrackList = await getZipTrackList(tableData.value.map((item) => ({ ...item }))).catch(
     (msg) => {
@@ -253,7 +255,7 @@ const run = async () => {
     percentage.value = 0
     return
   }
-  percentage.value = 2
+  percentage.value = percentage.value = Number(((2 / (sums + 3)) * 100).toFixed(2))
   await zip(zipTrackList, savePath.value, (progress) => {
     switch (progress.state) {
       case 'zipping': {
@@ -264,13 +266,11 @@ const run = async () => {
             .map(({ imageList }) => imageList.length)
             .reduce((a, b) => a + b, 0) + progress.frames
         loadingMsg.value = `${imageNums} / ${sums} 正在编码...`
-        percentage.value = Math.round(((imageNums + 2) / (sums + 3)) * 100)
+        percentage.value = Number((((imageNums + 2) / (sums + 3)) * 100).toFixed(2))
         return
       }
       case 'merging':
         loadingMsg.value = `正在合并...`
-        return
-      default:
         return
     }
   }).catch((error) => {
@@ -282,4 +282,5 @@ const run = async () => {
   loadingMsg.value = ''
   percentage.value = 0
 }
+const zipCancel = window.api.zipCancel
 </script>

@@ -7,52 +7,51 @@
     </NCollapseTransition>
     <div class="flex">
       <NButton :disabled="loading" class="mr-2" @click="openFile">
-        <NIcon size="20" :component="DocumentOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="DocumentOutline" />
+        </template>
         选择文件
       </NButton>
       <div class="flex-1"></div>
-      <NButton type="info" ghost :disabled="loading" @click="run">
-        <NIcon size="20" :component="PlayOutline" />
-        <span class="p-1"></span>
+      <NButton type="info" ghost :loading="loading" @click="run">
+        <template #icon>
+          <NIcon size="20" :component="PlayOutline" />
+        </template>
         执行
       </NButton>
     </div>
     <div class="p-1"></div>
     <NInputGroup>
       <NButton :disabled="loading" @click="openSaveDialog">
-        <NIcon size="20" :component="SaveOutline" />
-        <span class="p-1"></span>
+        <template #icon>
+          <NIcon size="20" :component="SaveOutline" />
+        </template>
         解压到
       </NButton>
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable
-      class="flex-1"
-      :loading="loading"
-      :columns="columns"
-      :data="tableData"
-      :row-key="getRowKey"
-      virtual-scroll
-      flex-height
-    >
+    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="tableData" :row-key="getRowKey" virtual-scroll
+      flex-height @update-sorter="handleSorterChange">
       <template #empty>
         <NEmpty description="空空的" />
       </template>
       <template #loading>
         <NSpin>
-          <template #description>{{ loadingMsg }} </template>
+          <template #description>
+            {{ loadingMsg }}
+          </template>
         </NSpin>
       </template>
     </NDataTable>
-    <NProgress
-      v-if="percentage"
-      processing
-      indicator-placement="inside"
-      :percentage="percentage"
-      class="pt-2"
-    />
+    <div v-if="percentage" class="flex items-center pt-2">
+      <NProgress class="pr-2" processing indicator-placement="inside" :percentage="percentage" />
+      <NButton type="error" size="tiny" ghost @click="unzipCancel">
+        <template #icon>
+          <NIcon size="12" :component="CloseOutline" />
+        </template>
+      </NButton>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -69,13 +68,16 @@ import {
   NSpin,
   NProgress
 } from 'naive-ui'
-import { DocumentOutline, PlayOutline, SaveOutline } from '@vicons/ionicons5'
-const columns = [
+import { DataTableBaseColumn, DataTableSortState } from 'naive-ui'
+import { DocumentOutline, PlayOutline, SaveOutline, CloseOutline } from '@vicons/ionicons5'
+const columns = ref<DataTableBaseColumn[]>([
   {
     title: '文件名',
     key: 'fileName',
     width: 110,
-    resizable: true
+    resizable: true,
+    sortOrder: 'ascend',
+    sorter: 'default'
   },
   {
     title: '相对路径',
@@ -87,7 +89,12 @@ const columns = [
     title: '解压后路径',
     key: 'absolutePath'
   }
-]
+])
+const handleSorterChange = (sorter: DataTableSortState) => {
+  const columnIndex = columns.value.findIndex(({ key }) => key === sorter.columnKey)
+  if (columnIndex < 0) return
+  columns.value[columnIndex].sortOrder = sorter.order
+}
 const filePath = ref('')
 const savePath = ref('')
 const tableData = ref<ImageInfo[]>([])
@@ -185,7 +192,7 @@ const run = async () => {
   }
 
   const sums = tableData.value.length
-  percentage.value = 1
+  percentage.value = Number(((1 / (sums + 1)) * 100).toFixed(2))
   const map = new Map<number, number>()
   loadingMsg.value = '文件解析中...'
   for (const index in zipIndex.imageList) {
@@ -207,7 +214,7 @@ const run = async () => {
                 .map(({ imgSums }) => imgSums)
                 .reduce((a, b) => a + b, 0) + progress.frames
             loadingMsg.value = `${imageNums} / ${sums} 正在解码...`
-            percentage.value = Math.round(((imageNums + 1) / (sums + 1)) * 100)
+            percentage.value = Number((((imageNums + 1) / (sums + 1)) * 100).toFixed(2))
           }
         }
       },
@@ -222,4 +229,6 @@ const run = async () => {
   loadingMsg.value = ''
   percentage.value = 0
 }
+
+const unzipCancel = window.api.unzipCancel
 </script>
