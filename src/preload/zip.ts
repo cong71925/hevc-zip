@@ -190,7 +190,7 @@ const getOutputOption = (setting: SettingOptions) => {
         `-quality ${12 + setting.preset_hevc_nvenc}`
       ]
     case 'libsvtav1':
-      return [`-crf ${setting.crf_libsvtav1}`, `-preset ${setting.preset_libsvtav1}`]
+      return [`-crf ${setting.crf_libsvtav1}`, `-preset ${13 - setting.preset_libsvtav1}`]
     case 'av1_amf':
       return [
         `-rc cqp`,
