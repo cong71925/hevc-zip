@@ -1,5 +1,5 @@
-import { ipcRenderer } from 'electron'
 import Ajv, { JSONSchemaType } from 'ajv'
+import store from './store'
 
 const ajv = new Ajv({ useDefaults: true })
 export const settingSchema: JSONSchemaType<SettingOptions> = {
@@ -145,16 +145,15 @@ const defaultSetting = Object.fromEntries(
 ) as SettingOptions
 Object.freeze(defaultSetting)
 
-export const getSetting = async (): Promise<SettingOptions> => {
-  const setting: unknown = await ipcRenderer.invoke('store.get', 'setting')
+export const getSetting = (): SettingOptions => {
+  const setting: unknown = store.get('setting')
   if (!settingValidate(setting)) {
     return defaultSetting
   }
   return setting
 }
 
-export const setSetting = async (setting: SettingOptions): Promise<void> =>
-  await ipcRenderer.invoke('store.set', 'setting', setting)
+export const setSetting = (setting: SettingOptions) => store.set('setting', setting)
 
 export const getEncoder = (
   encoder: SettingOptions['encoder'],

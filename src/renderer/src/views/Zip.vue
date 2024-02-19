@@ -256,7 +256,7 @@ const run = async () => {
     return
   }
   percentage.value = percentage.value = Number(((2 / (sums + 3)) * 100).toFixed(2))
-  await zip(zipTrackList, savePath.value, (progress) => {
+  window.api.onZipProgress((progress) => {
     switch (progress.state) {
       case 'zipping': {
         const track = progress.track || 0
@@ -273,7 +273,8 @@ const run = async () => {
         loadingMsg.value = `正在合并...`
         return
     }
-  }).catch((error) => {
+  })
+  await zip(zipTrackList, savePath.value).catch((error) => {
     showErrorMsg(String(error))
     console.error(error)
     loadingMsg.value = ''

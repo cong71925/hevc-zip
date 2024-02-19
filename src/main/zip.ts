@@ -1,7 +1,8 @@
-import { shell, ipcRenderer } from 'electron'
+import { shell } from 'electron'
 import { join, dirname, extname } from 'path'
 import fs from 'fs'
-import Ffmpeg from 'fluent-ffmpeg'
+import Ffmpeg from './ffmpeg'
+import ExifReader from 'exifreader'
 import { getSetting, getEncoder } from './setting'
 import { version } from '../../package.json'
 
@@ -38,7 +39,7 @@ export const zip = async (
   const zipIndex = zipTrack2Index(zipTrackList)
   fs.writeFileSync(join(cacheFolder, 'index.json'), JSON.stringify(zipIndex))
 
-  const setting = await getSetting()
+  const setting = getSetting()
 
   for (const index in zipTrackList) {
     await new Promise<void>((resolve, reject) => {
@@ -134,7 +135,7 @@ export const getZipTrackList = async (imageList: ImageInfo[]) => {
       throw new Error('停止处理')
     }
     const image = imageList[index]
-    const tags = await ipcRenderer.invoke('readExif', image.absolutePath)
+    const tags = await ExifReader.load(image.absolutePath)
     let str: string
     let imageType: 'jpeg' | 'png' | 'webp'
     if (!checkImgSizeMax(tags['Image Height']?.value || 0, tags['Image Width']?.value || 0)) {

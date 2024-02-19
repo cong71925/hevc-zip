@@ -3,14 +3,42 @@ import { electronAPI } from '@electron-toolkit/preload'
 import type { OpenDialogOptions, SaveDialogOptions } from 'electron'
 import { join, relative, basename } from 'path'
 import fs from 'fs'
-import Ffmpeg from 'fluent-ffmpeg'
 
-import { zip, zipCancel, getZipTrackList } from './zip'
-import { unzip, unzipCancel, getZipIndex } from './unzip'
-import { getSetting, setSetting, getEncoder, settingSchema } from './setting'
+// zip
+const zip = async (zipTrackList: ZipTrack[], savePath: string) =>
+  await ipcRenderer.invoke('zip', zipTrackList, savePath)
 
-import ffmpegPath from '../../resources/ffmpeg.exe?asset&asarUnpack'
-Ffmpeg.setFfmpegPath(ffmpegPath)
+const onZipProgress = (onProgress: (progress: Progress) => void) =>
+  ipcRenderer.on('zipProgress', (_event, progress: Progress) => onProgress(progress))
+
+const zipCancel = async () => await ipcRenderer.invoke('zipCancel')
+
+const getZipTrackList = async (imageList: ImageInfo[]) =>
+  await ipcRenderer.invoke('getZipTrackList', imageList)
+
+// unzip
+const unzip = async (filePath: string, savePath: string, zipIndex?: ZipIndex) =>
+  await ipcRenderer.invoke('unzip', filePath, savePath, zipIndex)
+
+const onUnzipProgress = (onProgress: (progress: Progress) => void) =>
+  ipcRenderer.on('unzipProgress', (_event, progress: Progress) => onProgress(progress))
+
+const unzipCancel = async () => await ipcRenderer.invoke('unzipCancel')
+
+const getZipIndex = async (filePath: string) => await ipcRenderer.invoke('getZipIndex', filePath)
+
+// setting
+const setSetting = async (setting: SettingOptions) =>
+  await ipcRenderer.invoke('setSetting', setting)
+
+const getSetting = async () => await ipcRenderer.invoke('getSetting')
+
+const getSettingSchema = async () => await ipcRenderer.invoke('getSettingSchema')
+
+const getEncoder = async (
+  encoder: SettingOptions['encoder'],
+  hardware: SettingOptions['hardware']
+) => await ipcRenderer.invoke('getEncoder', encoder, hardware)
 
 const showOpenDialog = async (options: OpenDialogOptions[]) =>
   await ipcRenderer.invoke('showOpenDialog', options)
@@ -49,13 +77,15 @@ const api = {
   getSetting,
   setSetting,
   getEncoder,
-  settingSchema,
+  getSettingSchema,
   // zip
   zip,
+  onZipProgress,
   zipCancel,
   getZipTrackList,
   // unzip
   unzip,
+  onUnzipProgress,
   unzipCancel,
   getZipIndex
 }

@@ -7,22 +7,14 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
-      zip: (
-        zipTrackList: ZipTrack[],
-        savePath: string,
-        progress?: (progress: Progress) => void,
-        signal?: AbortSignal
-      ) => Promise<void>
-      zipCancel: () => void
+      zip: (zipTrackList: ZipTrack[], savePath: string) => Promise<void>
+      onZipProgress: (onProgress: (progress: Progress) => void) => void
+      zipCancel: () => Promise<void>
       getZipTrackList: (imageList: ImageInfo[]) => Promise<ZipTrack[]>
 
-      unzip: (
-        filePath: string,
-        savePath: string,
-        progress?: (progress: Progress) => void,
-        zipIndex?: ZipIndex
-      ) => Promise<void>
-      unzipCancel: () => void
+      unzip: (filePath: string, savePath: string, zipIndex?: ZipIndex) => Promise<void>
+      onUnzipProgress: (onProgress: (progress: Progress) => void) => void
+      unzipCancel: () => Promise<void>
       getZipIndex: (path: string) => Promise<ZipIndex>
 
       showOpenDialog: (options?: OpenDialogOptions) => Promise<string[] | null>
@@ -36,8 +28,8 @@ declare global {
       getEncoder: (
         encoder: SettingOptions['encoder'],
         hardware: SettingOptions['hardware']
-      ) => RealEncoder
-      settingSchema: JSONSchemaType<SettingOptions>
+      ) => Promise<RealEncoder>
+      getSettingSchema: () => Promise<JSONSchemaType<SettingOptions>>
     }
   }
 }

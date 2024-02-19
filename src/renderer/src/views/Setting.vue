@@ -99,26 +99,28 @@ interface ReactiveForm {
     max: 6 | 9 | 10 | 13
   }
 }
+
+const settingSchema = await window.api.getSettingSchema()
 const getReactiveForm = (realEncoder: RealEncoder): ReactiveForm => ({
   crf: {
     key: `crf_${realEncoder}`,
     min: 0,
-    max: window.api.settingSchema.properties[`crf_${realEncoder}`].maximum
+    max: settingSchema.properties[`crf_${realEncoder}`].maximum
   },
   preset: {
     key: `preset_${realEncoder}`,
     min: 0,
-    max: window.api.settingSchema.properties[`preset_${realEncoder}`].maximum
+    max: settingSchema.properties[`preset_${realEncoder}`].maximum
   }
 })
 
 const { encoder, hardware } = form
-const realEncoder = window.api.getEncoder(encoder, hardware)
+const realEncoder = await window.api.getEncoder(encoder, hardware)
 const reactiveForm = ref<ReactiveForm>(getReactiveForm(realEncoder))
 
-watchEffect(() => {
+watchEffect(async () => {
   const { encoder, hardware } = form
-  const realEncoder = window.api.getEncoder(encoder, hardware)
+  const realEncoder = await window.api.getEncoder(encoder, hardware)
   reactiveForm.value = getReactiveForm(realEncoder)
 })
 </script>

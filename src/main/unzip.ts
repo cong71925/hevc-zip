@@ -1,7 +1,7 @@
-import { ipcRenderer, shell } from 'electron'
+import { shell, app } from 'electron'
 import { join, extname } from 'path'
 import fs from 'fs'
-import Ffmpeg from 'fluent-ffmpeg'
+import Ffmpeg from './ffmpeg'
 import { getSetting } from './setting'
 
 let controller = new AbortController()
@@ -26,7 +26,7 @@ export const unzip = async (
     fs.mkdirSync(cacheFolder, { recursive: true })
   }
 
-  const { outputType, outputWebpLossless, outputQualityLevel } = await getSetting()
+  const { outputType, outputWebpLossless, outputQualityLevel } = getSetting()
 
   const { trackList, imageList } = zipIndex
   for (const index in trackList) {
@@ -75,7 +75,7 @@ export const unzip = async (
         .on('error', (error) => {
           fs.rmSync(cacheFolder, { recursive: true })
           console.error(error)
-          reject(error)
+          reject(String(error))
         })
         .on('end', resolve)
         .run()
@@ -117,8 +117,8 @@ export const unzip = async (
 }
 
 export const getZipIndex = async (filePath: string) => {
-  const appName = await ipcRenderer.invoke('getName')
-  const tempPath = await ipcRenderer.invoke('getPath', 'temp')
+  const appName = app.getName()
+  const tempPath = app.getPath('temp')
   const cacheFolder = join(tempPath, appName)
   const jsonPath = join(cacheFolder, '/index.json')
   if (!fs.existsSync(cacheFolder)) {

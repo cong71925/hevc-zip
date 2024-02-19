@@ -200,32 +200,26 @@ const run = async () => {
     map.set(image.track, (map.get(image.track) || 0) + 1)
   }
   const trackSums = [...map].map(([track, imgSums]) => ({ track, imgSums }))
-  await window.api
-    .unzip(
-      filePath.value,
-      savePath.value,
-      (progress) => {
-        switch (progress.state) {
-          case 'unzipping': {
-            const track = progress.track || 0
-            const imageNums =
-              trackSums
-                .filter((item) => item.track < track)
-                .map(({ imgSums }) => imgSums)
-                .reduce((a, b) => a + b, 0) + progress.frames
-            loadingMsg.value = `${imageNums} / ${sums} 正在解码...`
-            percentage.value = Number((((imageNums + 1) / (sums + 1)) * 100).toFixed(2))
-          }
-        }
-      },
-      zipIndex
-    )
-    .catch((error) => {
-      showErrorMsg(String(error))
-      console.error(error)
-      loadingMsg.value = ''
-      percentage.value = 0
-    })
+  window.api.onUnzipProgress((progress: Progress) => {
+    switch (progress.state) {
+      case 'unzipping': {
+        const track = progress.track || 0
+        const imageNums =
+          trackSums
+            .filter((item) => item.track < track)
+            .map(({ imgSums }) => imgSums)
+            .reduce((a, b) => a + b, 0) + progress.frames
+        loadingMsg.value = `${imageNums} / ${sums} 正在解码...`
+        percentage.value = Number((((imageNums + 1) / (sums + 1)) * 100).toFixed(2))
+      }
+    }
+  })
+  await window.api.unzip(filePath.value, savePath.value, zipIndex).catch((error) => {
+    showErrorMsg(String(error))
+    console.error(error)
+    loadingMsg.value = ''
+    percentage.value = 0
+  })
   loadingMsg.value = ''
   percentage.value = 0
 }

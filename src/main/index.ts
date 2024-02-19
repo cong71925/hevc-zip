@@ -5,6 +5,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import ExifReader from 'exifreader'
 import store from './store'
+import { zip, zipCancel, getZipTrackList } from './zip'
+import { unzip, unzipCancel, getZipIndex } from './unzip'
+import { setSetting, getSetting, settingSchema, getEncoder } from './setting'
 
 function createWindow(): void {
   // Create the browser window.
@@ -24,11 +27,50 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  ipcMain.handle('store.get', (_event, key: string) => store.get(key))
+  ipcMain.handle(
+    'zip',
+    async (_event, zipTrackList: ZipTrack[], savePath: string) =>
+      await zip(zipTrackList, savePath, (progress: Progress) => {
+        mainWindow.webContents.send('zipProgress', progress)
+      })
+  )
 
-  ipcMain.handle('store.set', (_event, key: string, value: unknown) => store.set(key, value))
+  ipcMain.handle('zipCancel', () => zipCancel())
 
-  ipcMain.handle('store.has', (_event, key: string) => store.has(key))
+  ipcMain.handle(
+    'getZipTrackList',
+    async (_event, imageList: ImageInfo[]) => await getZipTrackList(imageList)
+  )
+
+  ipcMain.handle(
+    'unzip',
+    async (_event, filePath: string, savePath: string, zipIndex?: ZipIndex) =>
+      await unzip(
+        filePath,
+        savePath,
+        (progress: Progress) => {
+          mainWindow.webContents.send('unzipProgress', progress)
+        },
+        zipIndex
+      )
+  )
+
+  ipcMain.handle('unzipCancel', () => unzipCancel())
+
+  ipcMain.handle('getZipIndex', async (_event, filePath: string) => await getZipIndex(filePath))
+
+  // setting
+  ipcMain.handle('setSetting', (_event, setting: SettingOptions) => setSetting(setting))
+
+  ipcMain.handle('getSetting', () => getSetting())
+
+  ipcMain.handle('getSettingSchema', () => settingSchema)
+
+  ipcMain.handle(
+    'getEncoder',
+    (_event, encoder: SettingOptions['encoder'], hardware: SettingOptions['hardware']) =>
+      getEncoder(encoder, hardware)
+  )
 
   ipcMain.handle('showSaveDialog', async (_event, options: SaveDialogOptions) => {
     const { canceled, filePath } = await dialog.showSaveDialog(options)
@@ -43,14 +85,6 @@ function createWindow(): void {
       return filePaths
     } else return null
   })
-
-  ipcMain.handle('getPath', (_event, name: 'home' | 'appData' | 'userData' | 'temp') =>
-    app.getPath(name)
-  )
-
-  ipcMain.handle('getName', () => app.getName())
-
-  ipcMain.handle('readExif', (_event, path: string) => ExifReader.load(path))
 
   ipcMain.handle('openDirectory', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
