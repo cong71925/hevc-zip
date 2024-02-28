@@ -27,7 +27,6 @@ export const preview = async (
   if (!md5) {
     return net.fetch('')
   }
-  console.log(nums)
   const cacheFolder = join(PREVIEW_TEMP_PATH, md5)
   if (!fs.existsSync(cacheFolder)) {
     fs.mkdirSync(cacheFolder, { recursive: true })
@@ -59,7 +58,6 @@ export const getFileHeadMd5 = (filePath: string, max = 2 * 1024 * 1024): Promise
     const md5 = CryptoJS.algo.MD5.create()
     const readStream = fs.createReadStream(filePath, { start: 0, end: max - 1 })
     readStream.on('data', (chunk) => {
-      console.log(chunk)
       if (typeof chunk === 'string') {
         md5.update(chunk)
       } else {
