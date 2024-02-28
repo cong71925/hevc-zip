@@ -31,16 +31,8 @@
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable
-      class="flex-1"
-      :loading="loading"
-      :columns="columns"
-      :data="sortedTableData"
-      :row-key="getRowKey"
-      virtual-scroll
-      flex-height
-      @update-sorter="handleSorterChange"
-    >
+    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="sortedTableData" :row-key="getRowKey"
+      virtual-scroll flex-height @update-sorter="handleSorterChange">
       <template #empty>
         <NEmpty description="空空的" />
       </template>
@@ -126,15 +118,15 @@ const columns = ref<DataTableBaseColumn[]>([
 const tableData = computed(() =>
   zipIndex.value
     ? zipIndex.value.imageList.map(({ fileName, relativePath, track, index }, _index, array) => ({
-        fileName,
-        thisTrackImageNums: array.filter((item) => item.track === track).length,
-        absolutePath: savePath.value
-          ? window.api.join(savePath.value, relativePath || fileName)
-          : '',
-        relativePath,
-        track,
-        index
-      }))
+      fileName,
+      thisTrackImageNums: array.filter((item) => item.track === track).length,
+      absolutePath: savePath.value
+        ? window.api.join(savePath.value, relativePath || fileName)
+        : '',
+      relativePath,
+      track,
+      index
+    }))
     : []
 )
 
@@ -266,7 +258,7 @@ const run = async () => {
       }
     }
   })
-  await window.api.unzip(filePath.value, savePath.value, zipIndex.value).catch((error) => {
+  await window.api.unzip(filePath.value, savePath.value).catch((error) => {
     showErrorMsg(String(error))
     console.error(error)
     loadingMsg.value = ''
