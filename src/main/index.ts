@@ -3,11 +3,10 @@ import type { OpenDialogOptions, SaveDialogOptions } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import ExifReader from 'exifreader'
-import store from './store'
 import { zip, zipCancel, getZipTrackList } from './zip'
 import { unzip, unzipCancel, getZipIndex } from './unzip'
 import { setSetting, getSetting, settingSchema, getEncoder } from './setting'
+import { preview, getFileHeadMd5, cleanPreviewCache } from './preview'
 
 function createWindow(): void {
   // Create the browser window.
@@ -95,6 +94,11 @@ function createWindow(): void {
     } else return null
   })
 
+  ipcMain.handle(
+    'getFileHeadMd5',
+    async (_event, filePath: string) => await getFileHeadMd5(filePath)
+  )
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -111,6 +115,7 @@ function createWindow(): void {
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'atom', privileges: { bypassCSP: true } },
+  { scheme: 'preview', privileges: { bypassCSP: true } },
   { scheme: 'data', privileges: { bypassCSP: true } }
 ])
 // This method will be called when Electron has finished
@@ -129,6 +134,17 @@ app.whenReady().then(() => {
 
   protocol.handle('atom', (request) => net.fetch('file://' + request.url.slice('atom:///'.length)))
 
+  protocol.handle('preview', (request) => {
+    const { pathname, searchParams } = new URL(request.url)
+    return preview(
+      pathname.slice(1),
+      searchParams.get('md5'),
+      searchParams.has('track') ? Number(searchParams.get('track')) : 0,
+      searchParams.has('index') ? Number(searchParams.get('index')) : 0,
+      searchParams.has('nums') ? Number(searchParams.get('nums')) : 0
+    )
+  })
+
   createWindow()
 
   app.on('activate', function () {
@@ -142,6 +158,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  cleanPreviewCache()
   if (process.platform !== 'darwin') {
     app.quit()
   }

@@ -31,8 +31,16 @@
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="tableData" :row-key="getRowKey" virtual-scroll
-      flex-height @update-sorter="handleSorterChange">
+    <NDataTable
+      class="flex-1"
+      :loading="loading"
+      :columns="columns"
+      :data="sortedTableData"
+      :row-key="getRowKey"
+      virtual-scroll
+      flex-height
+      @update-sorter="handleSorterChange"
+    >
       <template #empty>
         <NEmpty description="空空的" />
       </template>
@@ -55,7 +63,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onBeforeUnmount, computed, watch, h } from 'vue'
 import {
   NButton,
   NInput,
@@ -68,8 +76,9 @@ import {
   NSpin,
   NProgress
 } from 'naive-ui'
-import { DataTableBaseColumn, DataTableSortState } from 'naive-ui'
+import { DataTableSortState, DataTableBaseColumn } from 'naive-ui'
 import { DocumentOutline, PlayOutline, SaveOutline, CloseOutline } from '@vicons/ionicons5'
+import { openImageListPreview } from '@renderer/components/ImagePreview'
 const columns = ref<DataTableBaseColumn[]>([
   {
     title: '文件名',
@@ -77,7 +86,7 @@ const columns = ref<DataTableBaseColumn[]>([
     width: 110,
     resizable: true,
     sortOrder: 'ascend',
-    sorter: 'default'
+    sorter: true
   },
   {
     title: '相对路径',
@@ -88,20 +97,71 @@ const columns = ref<DataTableBaseColumn[]>([
   {
     title: '解压后路径',
     key: 'absolutePath'
+  },
+  {
+    title: '操作',
+    key: 'preview',
+    width: 100,
+    render: (_rowData, rowIndex) => [
+      h(
+        NButton,
+        {
+          class: 'mr-1',
+          onClick: () =>
+            openImageListPreview(
+              rowIndex,
+              sortedTableData.value.map(
+                ({ track, index, thisTrackImageNums }) =>
+                  `preview:///${filePath.value}?md5=${fileMd5}&track=${track}&index=${index}&nums=${thisTrackImageNums}`
+              )
+            ),
+          text: true
+        },
+        { default: () => '预览' }
+      )
+    ]
   }
 ])
+
+const tableData = computed(() =>
+  zipIndex.value
+    ? zipIndex.value.imageList.map(({ fileName, relativePath, track, index }, _index, array) => ({
+        fileName,
+        thisTrackImageNums: array.filter((item) => item.track === track).length,
+        absolutePath: savePath.value
+          ? window.api.join(savePath.value, relativePath || fileName)
+          : '',
+        relativePath,
+        track,
+        index
+      }))
+    : []
+)
+
 const handleSorterChange = (sorter: DataTableSortState) => {
-  const columnIndex = columns.value.findIndex(({ key }) => key === sorter.columnKey)
-  if (columnIndex < 0) return
-  columns.value[columnIndex].sortOrder = sorter.order
+  columns.value[0].sortOrder = sorter.order
 }
-const filePath = ref('')
-const savePath = ref('')
-const tableData = ref<ImageInfo[]>([])
+
+const sortedTableData = computed(() => {
+  switch (columns.value[0].sortOrder) {
+    case 'ascend':
+      return tableData.value.toSorted((a, b) => a.fileName.localeCompare(b.fileName))
+    case 'descend':
+      return tableData.value.toSorted((a, b) => b.fileName.localeCompare(a.fileName))
+    default:
+      return tableData.value
+  }
+})
+
+const getRowKey = (row: ImageInfo) => row.relativePath
+
 const loadingMsg = ref('')
 const loading = computed(() => (loadingMsg.value ? true : false))
-const getRowKey = (row: ImageInfo) => row.relativePath
-let zipIndex: ZipIndex
+
+const filePath = ref('')
+const savePath = ref('')
+const zipIndex = ref<ZipIndex | null>(null)
+let fileMd5: string
 
 const openSaveDialog = async () => {
   loadingMsg.value = '正在打开文件'
@@ -113,28 +173,17 @@ const openSaveDialog = async () => {
   savePath.value = filepath[0]
 }
 
-watch(savePath, (path) => {
-  tableData.value = tableData.value.map((item) => ({
-    ...item,
-    absolutePath: window.api.join(path, item.relativePath || item.fileName)
-  }))
-})
-
 watch(filePath, async (path) => {
   if (!path) return
   loadingMsg.value = '文件解析中...'
+  fileMd5 = await window.api.getFileHeadMd5(path)
   const result = await window.api.getZipIndex(path).catch(() => {
     loadingMsg.value = ''
   })
   if (!result) {
     return
   }
-  zipIndex = result
-  tableData.value = zipIndex.imageList.map(({ fileName, relativePath }) => ({
-    fileName,
-    absolutePath: savePath.value ? window.api.join(savePath.value, relativePath || fileName) : '',
-    relativePath
-  }))
+  zipIndex.value = result
   loadingMsg.value = ''
 })
 
@@ -187,6 +236,9 @@ const check = () => {
 
 const percentage = ref(0)
 const run = async () => {
+  if (!zipIndex.value) {
+    return
+  }
   if (!check()) {
     return
   }
@@ -195,8 +247,8 @@ const run = async () => {
   percentage.value = Number(((1 / (sums + 1)) * 100).toFixed(2))
   const map = new Map<number, number>()
   loadingMsg.value = '文件解析中...'
-  for (const index in zipIndex.imageList) {
-    const image = zipIndex.imageList[index]
+  for (const index in zipIndex.value.imageList) {
+    const image = zipIndex.value.imageList[index]
     map.set(image.track, (map.get(image.track) || 0) + 1)
   }
   const trackSums = [...map].map(([track, imgSums]) => ({ track, imgSums }))
@@ -214,7 +266,7 @@ const run = async () => {
       }
     }
   })
-  await window.api.unzip(filePath.value, savePath.value, zipIndex).catch((error) => {
+  await window.api.unzip(filePath.value, savePath.value, zipIndex.value).catch((error) => {
     showErrorMsg(String(error))
     console.error(error)
     loadingMsg.value = ''

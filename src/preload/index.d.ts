@@ -23,6 +23,7 @@ declare global {
       isDir: (path: string) => boolean
       basename: basename
       join: join
+      getFileHeadMd5: (filePath: string) => Promise<string>
       getSetting: () => Promise<SettingOptions>
       setSetting: (setting: SettingOptions) => Promise<void>
       getEncoder: (

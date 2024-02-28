@@ -65,6 +65,9 @@ const readDir = (currentDirPath: string, rootDir?: string) => {
 
 const isDir = (path: string) => fs.statSync(path).isDirectory()
 
+const getFileHeadMd5 = async (filePath: string) =>
+  await ipcRenderer.invoke('getFileHeadMd5', filePath)
+
 // Custom APIs for renderer
 const api = {
   showOpenDialog,
@@ -73,6 +76,7 @@ const api = {
   isDir,
   basename,
   join,
+  getFileHeadMd5,
   // setting
   getSetting,
   setSetting,
