@@ -10,6 +10,9 @@ const PREVIEW_TEMP_PATH = join(TEMP_PATH, APP_NAME, '/preview')
 let unzipping = false
 
 export const cleanPreviewCache = () => {
+  if (!fs.existsSync(PREVIEW_TEMP_PATH)) {
+    return
+  }
   fs.rmSync(PREVIEW_TEMP_PATH, { recursive: true })
 }
 
