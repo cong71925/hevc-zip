@@ -1,5 +1,5 @@
-import { createApp, defineComponent, ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { NButton, NIcon, NTooltip } from 'naive-ui'
+import { createApp, defineComponent, ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { NButton, NIcon, NTooltip, NSpin } from 'naive-ui'
 import { Resize, Add, Remove, Close, ArrowBack, ArrowForward } from '@vicons/ionicons5'
 
 interface Props {
@@ -16,6 +16,14 @@ const ImagePreviewVue = defineComponent({
     const { srcList, close } = props
     const index = ref(props.index)
     const src = computed(() => srcList?.[index.value || 0] || props.src || '')
+    const loading = ref(false)
+    watch(src, (val) => {
+      loading.value = true
+      const image = new Image()
+      image.src = val
+      image.onload = () => (loading.value = false)
+      image.onerror = () => (loading.value = false)
+    })
     const scale = ref(1)
     const isImageList = computed(() => (srcList?.[index.value || 0] ? true : false))
     const startPoint = {
@@ -116,16 +124,20 @@ const ImagePreviewVue = defineComponent({
     return () => (
       <>
         <div class="fixed flex inset-0 z-30 select-none">
-          <img
-            src={src.value}
-            draggable="false"
-            class="m-auto max-h-screen max-w-screen cursor-grab"
-            style={`transform: scale(${scale.value}) translateX(${moveX.value}px) translateY(${moveY.value}px)`}
-            onMousedown={mousedown}
-            onMouseup={mouseup}
-            onMouseout={mouseup}
-            onMousemove={mousemove}
-          />
+          {loading.value ? (
+            <NSpin class="m-auto max-h-screen max-w-screen cursor-grab" />
+          ) : (
+            <img
+              src={src.value}
+              draggable="false"
+              class="m-auto max-h-screen max-w-screen cursor-grab"
+              style={`transform: scale(${scale.value}) translateX(${moveX.value}px) translateY(${moveY.value}px)`}
+              onMousedown={mousedown}
+              onMouseup={mouseup}
+              onMouseout={mouseup}
+              onMousemove={mousemove}
+            />
+          )}
         </div>
         <div class="absolute inset-0 z-10 bg-black/30"></div>
         <div class="absolute left-1/2 -translate-x-1/2 bg-white/50 rounded-full bottom-12 z-50 p-1 flex">
