@@ -137,7 +137,7 @@ app.whenReady().then(() => {
   protocol.handle('preview', (request) => {
     const { pathname, searchParams } = new URL(request.url)
     return preview(
-      pathname.slice(1),
+      decodeURI(pathname.slice(1)),
       searchParams.get('md5'),
       searchParams.has('track') ? Number(searchParams.get('track')) : 0,
       searchParams.has('index') ? Number(searchParams.get('index')) : 0,
