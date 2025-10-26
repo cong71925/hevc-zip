@@ -133,7 +133,9 @@ export const getZipIndex = async (filePath: string) => {
   await new Promise<void>((resolve, reject) => {
     ffmpeg
       .on('error', reject)
-      .on('end', resolve)
+      .on('end', () => { 
+        resolve()
+      })
       .input(filePath)
       .inputOptions([`-dump_attachment:t:0 ${jsonPath}`])
       .toFormat('ffmetadata')

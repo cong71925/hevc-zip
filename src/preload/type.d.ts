@@ -42,7 +42,7 @@ export declare global {
   }
 
   interface ZipProgress {
-    msg: string
+    msg?: string
     frames: number
     currentFps: number
     currentKbps: number

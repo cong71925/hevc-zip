@@ -105,7 +105,9 @@ export const zip = async (
         fs.rmSync(cacheFolder, { recursive: true })
         reject(String(error))
       })
-      .on('end', resolve)
+      .on('end', () => { 
+        resolve()
+      })
       .run()
   })
   fs.renameSync(outputFilePath, savePath)

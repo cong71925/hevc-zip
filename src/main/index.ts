@@ -29,7 +29,7 @@ function createWindow(): void {
   ipcMain.handle(
     'zip',
     async (_event, zipTrackList: ZipTrack[], savePath: string) =>
-      await zip(zipTrackList, savePath, (progress: Progress) => {
+      await zip(zipTrackList, savePath, (progress: ZipProgress) => {
         mainWindow.webContents.send('zipProgress', progress)
       })
   )
@@ -47,7 +47,7 @@ function createWindow(): void {
       await unzip(
         filePath,
         savePath,
-        (progress: Progress) => {
+        (progress: ZipProgress) => {
           mainWindow.webContents.send('unzipProgress', progress)
         },
         zipIndex
