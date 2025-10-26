@@ -41,7 +41,7 @@ export declare global {
     sort?: number
   }
 
-  interface Progress {
+  interface ZipProgress {
     msg: string
     frames: number
     currentFps: number

@@ -13,7 +13,7 @@ export const unzipCancel = () => {
 export const unzip = async (
   filePath: string,
   savePath: string,
-  progress?: (progress: Progress) => void,
+  progress?: (progress: ZipProgress) => void,
   zipIndex?: ZipIndex
 ) => {
   controller.abort()

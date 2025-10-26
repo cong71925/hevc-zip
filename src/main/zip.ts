@@ -19,7 +19,7 @@ export const zipCancel = () => {
 export const zip = async (
   zipTrackList: ZipTrack[],
   savePath: string,
-  progress?: (progress: Progress) => void
+  progress?: (progress: ZipProgress) => void
 ) => {
   controller.abort()
   controller = new AbortController()
