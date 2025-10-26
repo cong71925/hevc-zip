@@ -17,6 +17,19 @@ export declare global {
     fileName: string
     absolutePath: string
     relativePath: string
+    sort?: number
+  }
+
+  interface ImageTreeInfo {
+    fileName: string
+    absolutePath: string
+    relativePath: string
+    content?: ImageTreeInfo[]
+    parent?: ImageTreeInfo
+    track?: number
+    index?: number
+    imageType?: 'jpeg' | 'png' | 'webp'
+    sort?: number
   }
 
   interface ZipImageInfo {
@@ -25,6 +38,7 @@ export declare global {
     track: number
     index: number
     imageType: 'jpeg' | 'png' | 'webp'
+    sort?: number
   }
 
   interface Progress {

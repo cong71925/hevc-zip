@@ -64,7 +64,7 @@ export const getFileHeadMd5 = (filePath: string, max = 2 * 1024 * 1024): Promise
       if (typeof chunk === 'string') {
         md5.update(chunk)
       } else {
-        md5.update(CryptoJS.lib.WordArray.create(chunk))
+        md5.update(CryptoJS.lib.WordArray.create(new Uint8Array(chunk)))
       }
     })
     readStream.on('end', () => {

@@ -20,6 +20,7 @@ declare global {
       showOpenDialog: (options?: OpenDialogOptions) => Promise<string[] | null>
       showSaveDialog: (options?: SaveDialogOptions) => Promise<string | null>
       readDir: (currentDirPath: string) => ImageInfo[]
+      readDirTree: (currentDirPath: string) => ImageTreeInfo
       isDir: (path: string) => boolean
       basename: basename
       join: join

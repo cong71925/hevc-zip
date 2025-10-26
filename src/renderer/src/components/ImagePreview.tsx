@@ -17,13 +17,17 @@ const ImagePreviewVue = defineComponent({
     const index = ref(props.index)
     const src = computed(() => srcList?.[index.value || 0] || props.src || '')
     const loading = ref(false)
-    watch(src, (val) => {
-      loading.value = true
-      const image = new Image()
-      image.src = val
-      image.onload = () => (loading.value = false)
-      image.onerror = () => (loading.value = false)
-    })
+    watch(
+      src,
+      (val) => {
+        loading.value = true
+        const image = new Image()
+        image.src = val
+        image.onload = () => (loading.value = false)
+        image.onerror = () => (loading.value = false)
+      },
+      { immediate: true }
+    )
     const scale = ref(1)
     const isImageList = computed(() => (srcList?.[index.value || 0] ? true : false))
     const startPoint = {

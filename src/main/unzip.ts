@@ -33,7 +33,8 @@ export const unzip = async (
     const { imageType } = trackList[index]
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = Ffmpeg()
-      signal.addEventListener('abort', () => ffmpeg.kill(''))
+      const killFfmpeg = () => ffmpeg.kill('')
+      signal.addEventListener('abort', killFfmpeg)
 
       if (progress) {
         ffmpeg.on('progress', (e) => {
@@ -75,9 +76,13 @@ export const unzip = async (
         .on('error', (error) => {
           fs.rmSync(cacheFolder, { recursive: true })
           console.error(error)
+          signal.removeEventListener('abort', killFfmpeg)
           reject(String(error))
         })
-        .on('end', resolve)
+        .on('end', () => {
+          signal.removeEventListener('abort', killFfmpeg)
+          resolve()
+        })
         .run()
     })
   }

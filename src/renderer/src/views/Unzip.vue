@@ -31,19 +31,12 @@
       <NInput v-model:value="savePath" disabled type="text" placeholder="保存路径" />
     </NInputGroup>
     <div class="p-1"></div>
-    <NDataTable class="flex-1" :loading="loading" :columns="columns" :data="sortedTableData" :row-key="getRowKey"
-      virtual-scroll flex-height @update-sorter="handleSorterChange">
-      <template #empty>
-        <NEmpty description="空空的" />
+    <NSpin :show="loading" class="flex-1">
+      <template #description>
+        {{ loadingMsg }}
       </template>
-      <template #loading>
-        <NSpin>
-          <template #description>
-            {{ loadingMsg }}
-          </template>
-        </NSpin>
-      </template>
-    </NDataTable>
+      <FileTree v-model:data="treeData" modify-disabled @preview="handlePreview" />
+    </NSpin>
     <div v-if="percentage" class="flex items-center pt-2">
       <NProgress class="pr-2" processing indicator-placement="inside" :percentage="percentage" />
       <NButton type="error" size="tiny" ghost @click="unzipCancel">
@@ -55,97 +48,21 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onBeforeUnmount, computed, watch, h } from 'vue'
+import { ref, onBeforeUnmount, computed, watch } from 'vue'
 import {
   NButton,
   NInput,
   NInputGroup,
-  NDataTable,
   NIcon,
   NAlert,
   NCollapseTransition,
-  NEmpty,
   NSpin,
-  NProgress
+  NProgress,
+  useThemeVars
 } from 'naive-ui'
-import { DataTableSortState, DataTableBaseColumn } from 'naive-ui'
 import { DocumentOutline, PlayOutline, SaveOutline, CloseOutline } from '@vicons/ionicons5'
-import { openImageListPreview } from '@renderer/components/ImagePreview'
-const columns = ref<DataTableBaseColumn[]>([
-  {
-    title: '文件名',
-    key: 'fileName',
-    width: 110,
-    resizable: true,
-    sortOrder: 'ascend',
-    sorter: true
-  },
-  {
-    title: '相对路径',
-    key: 'relativePath',
-    width: 150,
-    resizable: true
-  },
-  {
-    title: '解压后路径',
-    key: 'absolutePath'
-  },
-  {
-    title: '操作',
-    key: 'preview',
-    width: 100,
-    render: (_rowData, rowIndex) => [
-      h(
-        NButton,
-        {
-          class: 'mr-1',
-          onClick: () =>
-            openImageListPreview(
-              rowIndex,
-              sortedTableData.value.map(
-                ({ track, index, thisTrackImageNums }) =>
-                  `preview:///${filePath.value}?md5=${fileMd5}&track=${track}&index=${index}&nums=${thisTrackImageNums}`
-              )
-            ),
-          text: true
-        },
-        { default: () => '预览' }
-      )
-    ]
-  }
-])
-
-const tableData = computed(() =>
-  zipIndex.value
-    ? zipIndex.value.imageList.map(({ fileName, relativePath, track, index }, _index, array) => ({
-      fileName,
-      thisTrackImageNums: array.filter((item) => item.track === track).length,
-      absolutePath: savePath.value
-        ? window.api.join(savePath.value, relativePath || fileName)
-        : '',
-      relativePath,
-      track,
-      index
-    }))
-    : []
-)
-
-const handleSorterChange = (sorter: DataTableSortState) => {
-  columns.value[0].sortOrder = sorter.order
-}
-
-const sortedTableData = computed(() => {
-  switch (columns.value[0].sortOrder) {
-    case 'ascend':
-      return tableData.value.toSorted((a, b) => a.fileName.localeCompare(b.fileName))
-    case 'descend':
-      return tableData.value.toSorted((a, b) => b.fileName.localeCompare(a.fileName))
-    default:
-      return tableData.value
-  }
-})
-
-const getRowKey = (row: ImageInfo) => row.relativePath
+import { openImagePreview, openImageListPreview } from '@renderer/components/ImagePreview'
+import FileTree from '@renderer/components/FileTree.vue'
 
 const loadingMsg = ref('')
 const loading = computed(() => (loadingMsg.value ? true : false))
@@ -153,6 +70,7 @@ const loading = computed(() => (loadingMsg.value ? true : false))
 const filePath = ref('')
 const savePath = ref('')
 const zipIndex = ref<ZipIndex | null>(null)
+const treeData = ref<ImageTreeInfo[]>([])
 let fileMd5: string
 
 const openSaveDialog = async () => {
@@ -177,7 +95,60 @@ watch(filePath, async (path) => {
   }
   zipIndex.value = result
   loadingMsg.value = ''
+  treeData.value = generateTreeData(zipIndex.value)
 })
+
+const trackSumsMap = computed(() => {
+  const map = new Map<number, number>()
+  if (!zipIndex.value) return map
+  zipIndex.value.imageList.forEach(({ track }) => {
+    map.set(track, (map.get(track) || 0) + 1)
+  })
+  return map
+})
+
+const generateTreeData = (zipIndex: ZipIndex) => {
+  if (!zipIndex) return []
+  const map = new Map<string, ImageTreeInfo>()
+  const imageList = zipIndex.imageList.toSorted((a, b) => (a.sort || 0) - (b.sort || 0))
+  for (const { fileName, relativePath, track, index } of imageList) {
+    if (!relativePath) {
+      map.set(fileName, {
+        fileName,
+        absolutePath: '',
+        relativePath: fileName,
+        track,
+        index
+      })
+      continue
+    }
+    const paths = relativePath.split(/[/\\]/)
+    let currentPath = ''
+    paths.forEach((name, i) => {
+      currentPath = currentPath ? window.api.join(currentPath, name) : name
+      if (!map.has(currentPath)) {
+        const payload = Object.assign(
+          {
+            fileName: name,
+            absolutePath: '',
+            relativePath: currentPath
+          },
+          paths.length - 1 === i ? { track, index } : { content: [] }
+        )
+        map.set(currentPath, payload)
+      }
+      if (i > 0) {
+        const parentPath = paths.slice(0, i).join('\\')
+        const parent = map.get(parentPath)
+        if (parent && parent.content && !parent.content.find((item) => item.fileName === name)) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          parent.content.push({ ...map.get(currentPath)!, parent })
+        }
+      }
+    })
+  }
+  return [...map.values()].filter((item) => !item.relativePath.includes('\\'))
+}
 
 const openFile = async () => {
   loadingMsg.value = '正在打开文件'
@@ -202,6 +173,25 @@ const drag = async (e: DragEvent) => {
   filePath.value = file.path
 }
 
+const handlePreview = (option: ImageTreeInfo) => {
+  if (option.content) return
+  const { parent } = option
+  if (!parent || !parent?.content) {
+    openImagePreview('atom:///' + option.absolutePath)
+    return
+  }
+  const index =
+    (parent?.content || []).findIndex(({ relativePath }) => relativePath === option.relativePath) ||
+    0
+  openImageListPreview(
+    index,
+    (parent?.content || []).map(
+      ({ track, index: i }) =>
+        `preview:///${filePath.value}?md5=${fileMd5}&track=${track}&index=${i}&nums=${track !== void 0 ? trackSumsMap.value.get(track) : i}`
+    )
+  )
+}
+
 const errorInfo = ref({ show: false, message: '', title: '' })
 
 const showErrorMsg = (message: string, title?: string, time = 3000) => {
@@ -215,7 +205,7 @@ const showErrorMsg = (message: string, title?: string, time = 3000) => {
 }
 
 const check = () => {
-  if (!tableData.value || tableData.value.length < 1) {
+  if (!zipIndex.value || zipIndex.value.imageList.length < 1) {
     showErrorMsg('没有选择文件！')
     return false
   }
@@ -235,7 +225,7 @@ const run = async () => {
     return
   }
 
-  const sums = tableData.value.length
+  const sums = zipIndex.value.imageList.length
   percentage.value = Number(((1 / (sums + 1)) * 100).toFixed(2))
   const map = new Map<number, number>()
   loadingMsg.value = '文件解析中...'
@@ -269,4 +259,17 @@ const run = async () => {
 }
 
 const unzipCancel = window.api.unzipCancel
+
+const { borderColor, borderRadius } = useThemeVars().value
 </script>
+<style scoped>
+:deep(.n-spin-content) {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  display: flex;
+  border-color: v-bind(borderColor);
+  border-radius: v-bind(borderRadius);
+  border-width: 0.5px;
+}
+</style>

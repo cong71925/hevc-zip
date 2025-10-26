@@ -1,6 +1,6 @@
 {
   "name": "hevc-zip",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "An Electron application with Vue and TypeScript",
   "main": "./out/main/index.js",
   "author": "cong71925",

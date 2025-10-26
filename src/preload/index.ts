@@ -63,6 +63,42 @@ const readDir = (currentDirPath: string, rootDir?: string) => {
   return result
 }
 
+interface ReadDirTreeResult {
+  absolutePath: string
+  fileName: string
+  relativePath: string
+  content?: ReadDirTreeResult[]
+  parent?: ReadDirTreeResult
+}
+
+const readDirTree = (currentDirPath: string, rootDir?: string, parent?: ReadDirTreeResult) => {
+  const result: ReadDirTreeResult = {
+    absolutePath: currentDirPath,
+    fileName: basename(currentDirPath),
+    relativePath: relative(join(rootDir || currentDirPath, '../'), currentDirPath),
+    content: [],
+    parent
+  }
+  const content: ReadDirTreeResult[] = []
+  result.content = content
+  fs.readdirSync(currentDirPath, { withFileTypes: true }).forEach((dirent) => {
+    const filePath = join(currentDirPath, dirent.name)
+    const payload: ReadDirTreeResult = {
+      absolutePath: filePath,
+      fileName: dirent.name,
+      relativePath: relative(join(rootDir || currentDirPath, '../'), filePath),
+      parent: result
+    }
+    if (dirent.isFile() && new RegExp('.(jpg|jpeg|png|webp)$', 'i').test(dirent.name)) {
+      content.push(payload)
+    } else if (dirent.isDirectory()) {
+      const payload = readDirTree(filePath, rootDir || currentDirPath, result)
+      content.push(payload)
+    }
+  })
+  return result
+}
+
 const isDir = (path: string) => fs.statSync(path).isDirectory()
 
 const getFileHeadMd5 = async (filePath: string) =>
@@ -73,6 +109,7 @@ const api = {
   showOpenDialog,
   showSaveDialog,
   readDir,
+  readDirTree,
   isDir,
   basename,
   join,

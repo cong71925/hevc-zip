@@ -1,10 +1,14 @@
-import { shell } from 'electron'
+import { shell, app } from 'electron'
 import { join, dirname, extname } from 'path'
 import fs from 'fs'
 import Ffmpeg from './ffmpeg'
 import ExifReader from 'exifreader'
 import { getSetting, getEncoder } from './setting'
 import { version } from '../../package.json'
+
+const APP_NAME = app.getName()
+const TEMP_PATH = app.getPath('temp')
+const ZIP_TEMP_PATH = join(TEMP_PATH, APP_NAME, '/zip')
 
 let controller = new AbortController()
 
@@ -22,7 +26,7 @@ export const zip = async (
   const signal = controller.signal
 
   const targetFolder = dirname(savePath)
-  const cacheFolder = join(targetFolder, '.cache')
+  const cacheFolder = join(ZIP_TEMP_PATH, new Date().getTime().toString())
   if (!fs.existsSync(targetFolder)) {
     fs.mkdirSync(targetFolder, { recursive: true })
   }
@@ -44,7 +48,8 @@ export const zip = async (
   for (const index in zipTrackList) {
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = Ffmpeg()
-      signal.addEventListener('abort', () => ffmpeg.kill(''))
+      const killFfmpeg = () => ffmpeg.kill('')
+      signal.addEventListener('abort', killFfmpeg)
       if (progress) {
         ffmpeg.on('progress', (e) => {
           progress({
@@ -66,9 +71,13 @@ export const zip = async (
         .on('error', (error) => {
           console.error(error)
           fs.rmSync(cacheFolder, { recursive: true })
+          signal.removeEventListener('abort', killFfmpeg)
           reject(String(error))
         })
-        .on('end', resolve)
+        .on('end', () => {
+          signal.removeEventListener('abort', killFfmpeg)
+          resolve()
+        })
         .run()
     })
   }
@@ -109,12 +118,13 @@ const zipTrack2Index = (zipTrackList: ZipTrack[]): ZipIndex => ({
   trackList: zipTrackList.map(({ imageType }, index) => ({ imageType: imageType, track: index })),
   imageList: zipTrackList
     .map(({ imageList, imageType }, track) =>
-      imageList.map(({ fileName, relativePath }, index) => ({
+      imageList.map(({ fileName, relativePath, sort }, index) => ({
         imageType,
         track,
         fileName,
         relativePath,
-        index
+        index,
+        sort
       }))
     )
     .flat(1)
