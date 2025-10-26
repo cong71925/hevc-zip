@@ -8,8 +8,8 @@ import fs from 'fs'
 const zip = async (zipTrackList: ZipTrack[], savePath: string) =>
   await ipcRenderer.invoke('zip', zipTrackList, savePath)
 
-const onZipProgress = (onProgress: (progress: Progress) => void) =>
-  ipcRenderer.on('zipProgress', (_event, progress: Progress) => onProgress(progress))
+const onZipProgress = (onProgress: (progress: ZipProgress) => void) =>
+  ipcRenderer.on('zipProgress', (_event, progress: ZipProgress) => onProgress(progress))
 
 const zipCancel = async () => await ipcRenderer.invoke('zipCancel')
 
@@ -20,8 +20,8 @@ const getZipTrackList = async (imageList: ImageInfo[]) =>
 const unzip = async (filePath: string, savePath: string, zipIndex?: ZipIndex) =>
   await ipcRenderer.invoke('unzip', filePath, savePath, zipIndex)
 
-const onUnzipProgress = (onProgress: (progress: Progress) => void) =>
-  ipcRenderer.on('unzipProgress', (_event, progress: Progress) => onProgress(progress))
+const onUnzipProgress = (onProgress: (progress: ZipProgress) => void) =>
+  ipcRenderer.on('unzipProgress', (_event, progress: ZipProgress) => onProgress(progress))
 
 const unzipCancel = async () => await ipcRenderer.invoke('unzipCancel')
 

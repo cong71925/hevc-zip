@@ -8,12 +8,12 @@ declare global {
     electron: ElectronAPI
     api: {
       zip: (zipTrackList: ZipTrack[], savePath: string) => Promise<void>
-      onZipProgress: (onProgress: (progress: Progress) => void) => void
+      onZipProgress: (onProgress: (progress: ZipProgress) => void) => void
       zipCancel: () => Promise<void>
       getZipTrackList: (imageList: ImageInfo[]) => Promise<ZipTrack[]>
 
       unzip: (filePath: string, savePath: string, zipIndex?: ZipIndex) => Promise<void>
-      onUnzipProgress: (onProgress: (progress: Progress) => void) => void
+      onUnzipProgress: (onProgress: (progress: ZipProgress) => void) => void
       unzipCancel: () => Promise<void>
       getZipIndex: (path: string) => Promise<ZipIndex>
 

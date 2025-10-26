@@ -234,7 +234,7 @@ const run = async () => {
     map.set(image.track, (map.get(image.track) || 0) + 1)
   }
   const trackSums = [...map].map(([track, imgSums]) => ({ track, imgSums }))
-  window.api.onUnzipProgress((progress: Progress) => {
+  window.api.onUnzipProgress((progress: ZipProgress) => {
     switch (progress.state) {
       case 'unzipping': {
         const track = progress.track || 0
